@@ -1,0 +1,52 @@
+# Continuous Integration: lint, type-check and test on every push / PR.
+# Runs on GitHub-hosted VMs ("runners"). No secrets needed — tests mock the AI,
+# and lint/typecheck/build don't call OpenAI.
+name: CI
+
+# When to run.
+on: [push, pull_request]
+
+jobs:
+  # Backend and frontend are separate npm projects -> two independent jobs
+  # that run in parallel on their own runners.
+  backend:
+    name: Backend (lint · typecheck · test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend # every `run` step executes here
+    steps:
+      # Check out the repository onto the runner.
+      - uses: actions/checkout@v4
+
+      # Install Node 20 and cache the npm download folder for faster reruns.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci # clean, reproducible install from package-lock.json
+      - run: npm run lint # ESLint — no errors allowed
+      - run: npx tsc --noEmit # type-check only (no output files)
+      - run: npm test # Vitest — service-layer tests (AI mocked)
+
+  frontend:
+    name: Frontend (lint · build · test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build # `tsc && vite build` — includes the type-check
+      - run: npm test # Vitest — passes with no test files
