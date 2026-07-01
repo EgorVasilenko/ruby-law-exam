@@ -1,25 +1,56 @@
+import { createHash } from 'node:crypto';
 import { v4 as uuidv4 } from 'uuid';
-import { extractText } from './extractorService';
-import { callAI } from './aiService';
-import { contractStore } from './contractStore';
-import type { ContractAnalysis } from '../types';
+import type { ContractStore } from './contractStore';
+import type { ContractAIResult, ContractAnalysis } from '../types';
 
-export async function analyseContract(
-  buffer: Buffer,
-  mimetype: string,
-  filename: string
-): Promise<ContractAnalysis> {
-  const text = await extractText(buffer, mimetype);
+export type AnalyzeFn = (text: string) => Promise<ContractAIResult>;
+export type ExtractFn = (buffer: Buffer, mimetype: string) => Promise<string>;
 
-  const analysis = await callAI(text);
+export interface AnalyseResult {
+  record: ContractAnalysis;
+  /** True when the record was served from the content cache (no AI call). */
+  cached: boolean;
+}
 
-  const record: ContractAnalysis = {
-    id: uuidv4(),
-    filename,
-    ...analysis,
-    createdAt: new Date().toISOString(),
-  };
+/**
+ * Orchestrates the upload -> extract -> analyse -> store flow.
+ * Dependencies are injected (constructor DI) so the provider and parser are
+ * swappable and easy to fake in tests. Knows nothing about HTTP.
+ */
+export class ContractService {
+  constructor(
+    private readonly store: ContractStore,
+    private readonly analyze: AnalyzeFn,
+    private readonly extract: ExtractFn,
+  ) {}
 
-  contractStore.set(record.id, record);
-  return record;
+  async analyseContract(
+    buffer: Buffer,
+    mimetype: string,
+    filename: string,
+  ): Promise<AnalyseResult> {
+    const hash = createHash('sha256').update(buffer).digest('hex');
+
+    const existing = this.store.findByHash(hash);
+    if (existing) {
+      return { record: existing, cached: true };
+    }
+
+    const text = await this.extract(buffer, mimetype);
+    const analysis = await this.analyze(text);
+
+    const record: ContractAnalysis = {
+      id: uuidv4(),
+      filename,
+      ...analysis,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.store.save(record, hash);
+    return { record, cached: false };
+  }
+
+  getById(id: string): ContractAnalysis | undefined {
+    return this.store.getById(id);
+  }
 }
