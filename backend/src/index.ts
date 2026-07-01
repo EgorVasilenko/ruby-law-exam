@@ -1,27 +1,26 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { contractService } from './container';
+import { config, contractService } from './container';
 import { createContractController } from './controllers/contractController';
 import { createContractRoutes } from './routes/contracts';
-import { errorHandler } from './middlewares/errorHandler';
+import { createErrorHandler } from './middlewares/errorHandler';
 import { requestLogger } from './middlewares/requestLogger';
 
 const app = express();
-const PORT = process.env.PORT ?? 3001;
 
 app.use(requestLogger);
-app.use(cors({ origin: process.env.FRONTEND_URL ?? 'http://localhost:5173' }));
+app.use(cors({ origin: config.server.frontendUrl }));
 app.use(express.json());
 
 const contractController = createContractController(contractService);
-app.use('/api/contracts', createContractRoutes(contractController));
+app.use('/api/contracts', createContractRoutes(contractController, config.upload));
 
 // Error-handling middleware must be registered last.
-app.use(errorHandler);
+app.use(createErrorHandler(config.upload));
 
-const server = app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
+const server = app.listen(config.server.port, () => {
+  console.log(`Backend running on http://localhost:${config.server.port}`);
 });
 
 // Graceful shutdown so restarts (tsx watch) and deploys exit promptly instead

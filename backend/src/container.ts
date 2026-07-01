@@ -1,13 +1,17 @@
+import { loadConfig } from './config';
 import { ContractStore } from './services/contractStore';
 import { ContractService } from './services/contractService';
-import { callAI } from './services/aiService';
+import { createAiAnalyzer } from './services/aiService';
 import { extractText } from './services/extractorService';
 
 /**
- * Composition root: the single place where concrete implementations are
- * constructed and wired together. To switch AI provider (e.g. Azure OpenAI),
- * swap `callAI` for another AnalyzeFn here — nothing else changes.
+ * Composition root: the single place where config is loaded and concrete
+ * implementations are constructed and wired. To switch AI provider, swap
+ * `createAiAnalyzer` for another AnalyzeFn factory here — nothing else changes.
  */
-const store = new ContractStore();
+export const config = loadConfig();
 
-export const contractService = new ContractService(store, callAI, extractText);
+const store = new ContractStore();
+const analyze = createAiAnalyzer(config.ai);
+
+export const contractService = new ContractService(store, analyze, extractText);
