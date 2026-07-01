@@ -1,0 +1,21 @@
+# Two independent images wired together for a one-command run.
+# The frontend (nginx) is the single entry point on :8080; it serves the built
+# React app and reverse-proxies /api to the backend container.
+services:
+  backend:
+    build: ./backend
+    env_file: ./backend/.env # provides OPENAI_API_KEY (and any overrides)
+    environment:
+      PORT: 3001
+      FRONTEND_URL: http://localhost:8080
+    expose:
+      - "3001" # internal only; reached by the frontend over the compose network
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
