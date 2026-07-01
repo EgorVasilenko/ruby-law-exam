@@ -17,10 +17,11 @@ export function UploadPage(): ReactElement {
 
   return (
     <div className={styles.page}>
+      <p className={styles.tag}>Upload</p>
+      <h1 className={styles.display}>Know what you&rsquo;re signing.</h1>
       <p className={styles.lead}>
-        Upload a contract (.pdf or .docx) and get an instant AI risk analysis:
-        contract type, a risk score, missing standard clauses, and plain-English
-        recommendations.
+        Upload a contract and get an instant AI review — type, risk score, missing
+        clauses, and plain-English recommendations.
       </p>
 
       {status === 'loading' ? (

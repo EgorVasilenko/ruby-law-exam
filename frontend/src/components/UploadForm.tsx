@@ -113,7 +113,7 @@ export function UploadForm({ onSubmit, disabled = false }: UploadFormProps): Rea
         onClick={() => file && onSubmit(file)}
         disabled={!file || disabled}
       >
-        Analyze contract
+        Analyze contract <span className={styles.arrow}>→</span>
       </button>
     </div>
   );

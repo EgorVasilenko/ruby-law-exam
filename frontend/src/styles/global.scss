@@ -1,13 +1,28 @@
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/SpaceGrotesk.woff2') format('woff2');
+}
+
 :root {
-  --color-bg: #f5f6f8;
-  --color-surface: #ffffff;
-  --color-text: #1a1a2e;
-  --color-muted: #6b7280;
-  --color-border: #e2e5ea;
-  --color-primary: #3b4cca;
-  --color-risk-low: #22a06b;
-  --color-risk-moderate: #d99400;
-  --color-risk-high: #d1453b;
+  --paper: #ffffff;
+  --surface: #ffffff;
+  --ink: #141414;
+  --muted: #6b6b70;
+  --line: #e5e5e7;
+
+  --risk-low: #3f7d5a;
+  --risk-med: #a67a2e;
+  --risk-high: #b0463b;
+  --tint-low: #eaf2ed;
+  --tint-med: #f3ecdb;
+  --tint-high: #f6e3e0;
+
+  --display: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+  --sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --maxw: 940px;
 }
 
 * {
@@ -21,9 +36,17 @@ body {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
-    Arial, sans-serif;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
   line-height: 1.5;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
 }

@@ -42,6 +42,7 @@ export class ContractService {
     const record: ContractAnalysis = {
       id: uuidv4(),
       filename,
+      fullText: text,
       ...analysis,
       createdAt: new Date().toISOString(),
     };

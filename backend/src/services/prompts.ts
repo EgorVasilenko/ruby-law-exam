@@ -12,7 +12,8 @@ Return a SINGLE JSON object and nothing else, matching exactly this shape:
   "type": one of ["NDA", "Employment", "Service Agreement", "Lease", "Other"],
   "riskScore": integer from 0 to 100,
   "missingClauses": string[],
-  "recommendations": string[]
+  "recommendations": string[],
+  "riskyClauses": [{ "text": string, "severity": "low" | "medium" | "high", "reason": string }]
 }
 
 Field guidance:
@@ -26,4 +27,8 @@ Field guidance:
   (e.g. governing law, confidentiality, termination, liability cap, dispute resolution).
   Use an empty array if nothing important is missing.
 - "recommendations": plain-English, actionable fixes a non-lawyer can understand.
-  Use an empty array if there is nothing to recommend.`;
+  Use an empty array if there is nothing to recommend.
+- "riskyClauses": specific clauses in the contract that carry legal risk. For each,
+  "text" MUST be an EXACT verbatim quote copied word-for-word from the contract (so it
+  can be located in the document — do not paraphrase), "severity" is low/medium/high, and
+  "reason" is a short plain-English explanation of the risk. Use an empty array if none.`;

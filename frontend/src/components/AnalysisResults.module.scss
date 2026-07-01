@@ -1,97 +1,192 @@
 .results {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 1.5rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
 }
 
-.header {
+/* header: filename + type + big score */
+.head {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
+  align-items: center;
+  gap: 24px;
   flex-wrap: wrap;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line);
 }
 
 .meta {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 .filename {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
   margin: 0;
-  font-weight: 600;
   word-break: break-word;
 }
 
 .typeBadge {
-  align-self: flex-start;
-  padding: 0.2rem 0.7rem;
-  background: var(--color-primary);
-  color: #fff;
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  padding: 3px 11px;
   border-radius: 999px;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.risk {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 90px;
-  padding: 0.6rem 1rem;
-  border-radius: 10px;
-  color: #fff;
-}
-
-.riskScore {
-  font-size: 1.8rem;
+  font-size: 0.7rem;
   font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.score {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.num {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
   line-height: 1;
+  font-size: clamp(2.2rem, 4.5vw, 3rem);
+  font-variant-numeric: tabular-nums;
 }
 
-.riskLabel {
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
+.caption {
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+  line-height: 1.5;
 }
 
+.caption b {
+  display: block;
+  font-size: 0.82rem;
+}
+
+/* risk-band colours (low / moderate / high) */
 .low {
-  background: var(--color-risk-low);
+  color: var(--risk-low);
 }
-
 .moderate {
-  background: var(--color-risk-moderate);
+  color: var(--risk-med);
 }
-
 .high {
-  background: var(--color-risk-high);
+  color: var(--risk-high);
 }
 
 .block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  padding-top: 26px;
 }
 
-.blockTitle {
-  margin: 0;
-  font-size: 1.05rem;
+.label {
+  font-size: 0.68rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+  margin: 0 0 12px;
 }
 
-.list {
-  margin: 0;
-  padding-left: 1.2rem;
+/* risk flags */
+.flags {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+}
+
+.flag {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 16px;
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+}
+
+.flag:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.chip {
+  align-self: start;
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 0;
+  border-radius: 5px;
+}
+
+.chipLow {
+  background: var(--tint-low);
+  color: var(--risk-low);
+}
+.chipMed {
+  background: var(--tint-med);
+  color: var(--risk-med);
+}
+.chipHigh {
+  background: var(--tint-high);
+  color: var(--risk-high);
+}
+
+.quote {
+  font-weight: 600;
+  margin: 0 0 2px;
+  font-size: 0.92rem;
+}
+
+.reason {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin: 0;
+}
+
+/* two-column short lists */
+.cols2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+}
+
+@media (max-width: 680px) {
+  .cols2 {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.92rem;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.row:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.dot {
+  color: var(--muted);
 }
 
 .empty {
   margin: 0;
-  color: var(--color-muted);
+  color: var(--muted);
   font-style: italic;
+  font-size: 0.92rem;
 }

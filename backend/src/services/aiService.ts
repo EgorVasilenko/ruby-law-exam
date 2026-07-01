@@ -7,11 +7,18 @@ import type { Config } from '../config';
 import type { ContractAIResult } from '../types';
 import type { AnalyzeFn } from './contractService';
 
+const riskyClauseSchema = z.object({
+  text: z.string(),
+  severity: z.enum(['low', 'medium', 'high']),
+  reason: z.string(),
+});
+
 const AIResultSchema = z.object({
   type: z.enum(['NDA', 'Employment', 'Service Agreement', 'Lease', 'Other']),
   riskScore: z.number().min(0).max(100),
   missingClauses: z.array(z.string()),
   recommendations: z.array(z.string()),
+  riskyClauses: z.array(riskyClauseSchema),
 });
 
 /**

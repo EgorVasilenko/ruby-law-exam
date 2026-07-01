@@ -4,10 +4,11 @@
   align-items: flex-start;
   gap: 0.75rem;
   padding: 1rem 1.25rem;
-  background: #fdecea;
-  border: 1px solid #f5c6c2;
-  border-radius: 8px;
-  color: var(--color-risk-high);
+  background: var(--tint-high);
+  border: 1px solid #ecc7c3;
+  border-radius: 10px;
+  color: var(--risk-high);
+  margin-top: 20px;
 }
 
 .text {
@@ -16,11 +17,12 @@
 
 .retry {
   padding: 0.4rem 0.9rem;
-  background: var(--color-risk-high);
+  background: var(--risk-high);
   color: #fff;
   border: none;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+  font-family: inherit;
   cursor: pointer;
 
   &:hover {

@@ -9,6 +9,7 @@ const ANALYSIS: ContractAIResult = {
   riskScore: 42,
   missingClauses: ['Governing law'],
   recommendations: ['Add a termination clause'],
+  riskyClauses: [{ text: 'as-is', severity: 'medium', reason: 'No warranty' }],
 };
 
 /**

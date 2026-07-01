@@ -9,9 +9,12 @@ export default function App(): ReactElement {
     <BrowserRouter>
       <div className={styles.app}>
         <header className={styles.header}>
-          <Link to="/" className={styles.brand}>
-            Contract Analysis
-          </Link>
+          <div className={styles.headerInner}>
+            <Link to="/" className={styles.brand}>
+              contract<span>·analysis</span>
+            </Link>
+            <span className={styles.eyebrow}>Ruby Law</span>
+          </div>
         </header>
         <main className={styles.main}>
           <Routes>

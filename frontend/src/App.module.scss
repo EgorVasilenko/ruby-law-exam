@@ -5,21 +5,42 @@
 }
 
 .header {
-  padding: 1rem 1.5rem;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--line);
+}
+
+.headerInner {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .brand {
-  font-size: 1.15rem;
+  font-family: var(--display);
   font-weight: 700;
-  color: var(--color-text);
+  letter-spacing: -0.03em;
+  font-size: 1rem;
+  color: var(--ink);
   text-decoration: none;
+}
+
+.brand span {
+  color: var(--muted);
+}
+
+.eyebrow {
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .main {
   width: 100%;
-  max-width: 720px;
+  max-width: var(--maxw);
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 34px 24px 64px;
 }

@@ -25,8 +25,8 @@ Built for the Ruby Law senior full-stack exam. The full task spec is in
 
 | Layer    | Choice |
 |----------|--------|
-| Backend  | Node 20, Express, TypeScript, OpenAI SDK, Zod, Multer |
-| Frontend | React 18, Vite, TypeScript, React Router, SCSS modules |
+| Backend  | Node 22, Express, TypeScript, OpenAI SDK, Zod, Multer |
+| Frontend | React 19, Vite, TypeScript, React Router, SCSS modules |
 | Tests    | Vitest |
 
 ## Project structure
@@ -35,7 +35,7 @@ Built for the Ruby Law senior full-stack exam. The full task spec is in
 backend/src
 ├── index.ts                 # app wiring, middleware order, graceful shutdown
 ├── container.ts             # composition root — the only place deps are constructed
-├── config.ts                # env-derived config (MAX_UPLOAD_MB)
+├── config.ts                # Zod-validated env config (loaded once, injected)
 ├── errors.ts                # HTTP-agnostic domain errors
 ├── controllers/             # thin HTTP adapters (happy-path only)
 ├── routes/                  # multer + route wiring (factories)
@@ -57,7 +57,7 @@ frontend/src
 
 ## Quick start
 
-**Prerequisites:** Node.js 20+ and an OpenAI API key.
+**Prerequisites:** Node.js 22+ and an OpenAI API key.
 
 ```bash
 # from the repo root
@@ -159,10 +159,11 @@ Response envelope:
 ## Architecture & design decisions
 
 The backend is layered **route → controller → service → store**, wired with
-lightweight **constructor dependency injection**. All concrete implementations
-(`ContractStore`, `callAI`, `extractText`) are created and injected in a single
-composition root (`container.ts`); nothing below it imports its own dependencies, which
-keeps the service HTTP-agnostic and trivial to test with fakes.
+lightweight **constructor dependency injection**. Config is loaded and validated once
+(Zod), and all concrete implementations (the store, AI analyzer, and text extractor) are
+created and injected in a single composition root (`container.ts`); nothing below it reads
+`process.env` or imports its own dependencies, which keeps the service HTTP-agnostic and
+trivial to test with fakes.
 
 Errors follow one rule: **services throw HTTP-agnostic domain errors** (e.g.
 `DocumentUnreadableError`, `AIUnavailableError`) and the **only** place that knows about

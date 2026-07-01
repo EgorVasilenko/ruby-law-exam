@@ -12,6 +12,8 @@ export function ResultPage(): ReactElement {
 
   return (
     <div className={styles.page}>
+      <p className={styles.tag}>Analysis</p>
+
       {status === 'loading' && <Spinner label="Loading analysis…" />}
       {status === 'error' && (
         <ErrorMessage message={error ?? 'Failed to load contract'} />
