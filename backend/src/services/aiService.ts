@@ -1,12 +1,24 @@
-import OpenAI from 'openai';
-import { zodResponseFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
 import { DEFAULT_SYSTEM_PROMPT } from './prompts';
-import { recordUsage } from './usageTracker';
-import { AIUnavailableError, InvalidAIResponseError } from '../errors';
+import { InvalidAIResponseError } from '../errors';
 import type { Config } from '../config';
 import type { ContractAIResult } from '../types';
 import type { AnalyzeFn } from './contractService';
+
+export interface CompletionRequest {
+  system: string;
+  user: string;
+  /** Schema the model must conform to (used for structured outputs). */
+  schema: z.ZodTypeAny;
+  schemaName: string;
+}
+
+/**
+ * Provider seam: run a schema-constrained completion and return the raw parsed
+ * object. Implemented per provider (OpenAI, Azure, a fake in tests). Kept free
+ * of our domain types so any provider can satisfy it.
+ */
+export type StructuredCompleter = (req: CompletionRequest) => Promise<unknown>;
 
 const riskyClauseSchema = z.object({
   text: z.string(),
@@ -14,8 +26,8 @@ const riskyClauseSchema = z.object({
   reason: z.string(),
 });
 
-// Schema for OpenAI Structured Outputs. No numeric min/max — strict json_schema
-// doesn't support them; riskScore is clamped to 0–100 after parsing.
+// No numeric min/max — strict json_schema (structured outputs) doesn't support
+// them; riskScore is clamped to 0–100 after validation.
 const AIResultSchema = z.object({
   type: z.enum(['NDA', 'Employment', 'Service Agreement', 'Lease', 'Other']),
   riskScore: z.number(),
@@ -27,56 +39,28 @@ const AIResultSchema = z.object({
 const clamp = (n: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, n));
 
 /**
- * Builds the AI analysis function (the only code that knows about OpenAI) from
- * injected config. Uses Structured Outputs so the model is constrained to our
- * schema server-side, then the SDK validates the reply against the same Zod
- * schema — far fewer malformed-response cases than "ask for JSON and hope".
- * - AIUnavailableError: provider unreachable (no key, network, outage).
- * - InvalidAIResponseError: model refused or returned no parseable output.
+ * Provider-agnostic contract analysis: builds the prompt, delegates the
+ * schema-constrained completion to the injected StructuredCompleter, validates
+ * the reply against our schema, and normalises riskScore. Swapping AI provider
+ * is just a different StructuredCompleter — this logic doesn't change.
  */
-export function createAiAnalyzer(aiConfig: Config['ai']): AnalyzeFn {
+export function createAiAnalyzer(cfg: Config['ai'], complete: StructuredCompleter): AnalyzeFn {
   return async function analyze(text: string): Promise<ContractAIResult> {
-    if (!aiConfig.apiKey) {
-      throw new AIUnavailableError('OPENAI_API_KEY is not configured');
+    const system = cfg.systemPrompt.trim() || DEFAULT_SYSTEM_PROMPT;
+    const user = text.slice(0, cfg.maxInputChars);
+
+    const raw = await complete({
+      system,
+      user,
+      schema: AIResultSchema,
+      schemaName: 'contract_analysis',
+    });
+
+    const result = AIResultSchema.safeParse(raw);
+    if (!result.success) {
+      throw new InvalidAIResponseError('AI response did not match the expected schema');
     }
 
-    const client = new OpenAI({ apiKey: aiConfig.apiKey });
-    const systemPrompt = aiConfig.systemPrompt.trim() || DEFAULT_SYSTEM_PROMPT;
-    const contractText = text.slice(0, aiConfig.maxInputChars);
-
-    const completion = await client.chat.completions
-      .parse({
-        model: aiConfig.model,
-        temperature: aiConfig.temperature,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: contractText },
-        ],
-        response_format: zodResponseFormat(AIResultSchema, 'contract_analysis'),
-      })
-      .catch((err: unknown) => {
-        throw new AIUnavailableError(
-          `AI provider request failed: ${err instanceof Error ? err.message : 'unknown error'}`,
-        );
-      });
-
-    const message = completion.choices[0]?.message;
-    if (message?.refusal) {
-      throw new InvalidAIResponseError(`AI refused the request: ${message.refusal}`);
-    }
-    const parsed = message?.parsed;
-    if (!parsed) {
-      throw new InvalidAIResponseError('AI returned no parseable structured output');
-    }
-
-    if (completion.usage) {
-      recordUsage(
-        aiConfig.model,
-        completion.usage.prompt_tokens,
-        completion.usage.completion_tokens,
-      );
-    }
-
-    return { ...parsed, riskScore: clamp(Math.round(parsed.riskScore), 0, 100) };
+    return { ...result.data, riskScore: clamp(Math.round(result.data.riskScore), 0, 100) };
   };
 }
