@@ -37,17 +37,6 @@ async function unwrap<T>(res: Response): Promise<T> {
   return (body as SuccessEnvelope<T>).data;
 }
 
-export async function uploadContract(file: File): Promise<ContractAnalysis> {
-  const form = new FormData();
-  form.append('file', file);
-
-  const res = await fetch(`${API_BASE_URL}/api/contracts/upload`, {
-    method: 'POST',
-    body: form,
-  });
-  return unwrap<ContractAnalysis>(res);
-}
-
 export async function getContract(id: string): Promise<ContractAnalysis> {
   const res = await fetch(`${API_BASE_URL}/api/contracts/${encodeURIComponent(id)}`);
   return unwrap<ContractAnalysis>(res);

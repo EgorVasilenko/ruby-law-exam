@@ -12,14 +12,17 @@ Built for the Ruby Law senior full-stack exam. The full task spec is in
 ## Features
 
 - Upload `.pdf` / `.docx` (≤ 10 MB); text extracted server-side (`pdf-parse` / `mammoth`)
-- AI classification + risk analysis via OpenAI — single call, structured JSON, **Zod-validated**
-- Results UI: contract-type badge, colour-coded risk score (Low / Moderate / High),
-  missing-clause list, recommendation list
+- AI classification + risk analysis via OpenAI **Structured Outputs** (schema-enforced, **Zod-validated**)
+- **Clause-level risk highlighting** — risky clauses flagged (severity + reason) and highlighted inline in the contract text
+- **Live progress over SSE** — streamed `extracting → analyzing → done` stages with a progress bar
+- Results UI: contract-type badge, colour-coded risk score (Low / Moderate / High), risk flags,
+  missing clauses, recommendations
 - **Deep-linkable results** (`/contracts/:id`) — refresh and back/forward work
 - **Content-based caching** (SHA-256 of the file): re-uploading the same file returns the
   stored analysis instantly, with no AI call
-- Request logging, estimated OpenAI **cost tracking**, and graceful shutdown
-- Strict TypeScript (no `any`), ESLint clean, service-layer unit tests with the AI mocked
+- Per-IP **rate limiting**, request logging, estimated OpenAI **cost tracking**, `/api/health`, graceful shutdown
+- 404 / 500 pages and an auto-dismissing error toast
+- Strict TypeScript (no `any`), ESLint clean, **19 tests** (service + HTTP integration + frontend units)
 
 ## Tech stack
 
@@ -33,23 +36,26 @@ Built for the Ruby Law senior full-stack exam. The full task spec is in
 
 ```text
 backend/src
-├── index.ts                 # app wiring, middleware order, graceful shutdown
+├── app.ts                   # builds the Express app (injectable → supertest-friendly)
+├── index.ts                 # server bootstrap + graceful shutdown
 ├── container.ts             # composition root — the only place deps are constructed
 ├── config.ts                # Zod-validated env config (loaded once, injected)
 ├── errors.ts                # HTTP-agnostic domain errors
-├── controllers/             # thin HTTP adapters (happy-path only)
-├── routes/                  # multer + route wiring (factories)
-├── middlewares/             # errorHandler, requestLogger
-├── services/                # contractService (orchestration), aiService, extractorService,
-│                            #   contractStore, usageTracker, prompts
-└── utils/asyncHandler.ts
+├── controllers/             # thin HTTP adapters (upload, SSE stream, get-by-id)
+├── routes/                  # multer + rate limit + route wiring (factories)
+├── middlewares/             # errorHandler (registry), requestLogger
+├── services/                # contractService (orchestration), aiService + openAiCompleter,
+│                            #   extractorService, contractStore, usageTracker, prompts
+└── utils/                   # asyncHandler, sseStream
 
 frontend/src
-├── App.tsx                  # router
-├── api/contracts.ts         # fetch client (unwraps the response envelope)
-├── hooks/                   # useContractUpload (mutation), useContract (query by id)
-├── components/              # UploadForm, AnalysisResults, Spinner, ErrorMessage
-├── pages/                   # UploadPage, ResultPage
+├── App.tsx                  # router (+ ErrorBoundary, 404 route)
+├── api/contracts.ts         # fetch client + SSE reader (parseSseEvents)
+├── hooks/                   # useContractUpload (streaming), useContract (query by id)
+├── lib/                     # riskLevel, highlightClauses (buildSegments)
+├── components/              # UploadForm, AnalysisResults, HighlightedContract, icons,
+│                            #   ErrorMessage (toast), MessagePage, ErrorBoundary, Spinner
+├── pages/                   # UploadPage, ResultPage, NotFoundPage, ErrorPage
 └── styles/global.scss
 ```
 
@@ -127,9 +133,10 @@ npm run lint
 npm run build        # tsc + vite build
 ```
 
-The backend tests cover the service layer with fakes injected through the constructor
-(no module mocking): a successful analysis, content-cache behaviour (AI called once for
-the same file), and error propagation when the AI is unavailable.
+Tests (19 total) run without hitting OpenAI. Backend: service-layer units with fakes
+injected through the constructor (success, content-cache, AI-unavailable), analyzer units
+(schema validation, riskScore clamp), and **supertest HTTP integration** tests (upload,
+SSE stream, 400/404). Frontend: unit tests for the clause-highlighting and SSE parsers.
 
 ---
 
@@ -139,8 +146,11 @@ Base path: `/api/contracts`
 
 | Method & path        | Body            | Success | Errors |
 |----------------------|-----------------|---------|--------|
-| `POST /upload`       | multipart `file`| `201` new · `200` from cache | `400` bad/no file · `413` too large · `422` unreadable / invalid AI output · `429` too many uploads · `500` |
-| `GET /:id`           | —               | `200`   | `404` not found |
+| `POST /upload`        | multipart `file`| `201` new · `200` from cache | `400` bad/no file · `413` too large · `422` unreadable / invalid AI output · `429` too many uploads · `500` |
+| `POST /upload/stream` | multipart `file`| `200` SSE stream: `extracting` → `analyzing` → `done` (or `error`) events | `400`/`413`/`429` before the stream opens |
+| `GET /:id`            | —               | `200`   | `404` not found |
+
+Plus `GET /api/health` → `200 { "status": "ok" }`.
 
 Response envelope:
 
@@ -176,21 +186,25 @@ internal `sha256(file) → id` index. `id` is a UUID (public, and used in the fr
 for deep-links); the hash is never exposed. Re-uploading identical bytes returns the
 cached analysis with no extraction and no AI call — cheaper, faster, deterministic.
 
+Progress is streamed over SSE without complicating the core: `analyseContract` takes an
+optional `onProgress` observer (the sync `/upload` omits it, unchanged), and a
+`/upload/stream` endpoint forwards each stage as an event through a small `sseStream` util.
+
 The frontend mirrors this separation: a thin `fetch` client, two small hooks
-(`useContractUpload`, `useContract`), presentational components, and two routed pages.
-After a successful upload it navigates to `/contracts/:id`, and the result page fetches by
-id — so refresh, deep-links, and back/forward all work through one data path.
+(`useContractUpload`, `useContract`), presentational components, and routed pages. After a
+successful upload it navigates to `/contracts/:id`, and the result page fetches by id — so
+refresh, deep-links, and back/forward all work through one data path.
 
 ## AI prompt strategy
 
-A **single** Chat Completions call (`response_format: json_object`, `temperature: 0`)
-classifies the contract and returns the full analysis at once. The default system prompt
-lives in `services/prompts.ts` (committed and reviewable; overridable via the
-`AI_SYSTEM_PROMPT` env var). The model's reply is parsed and validated with a **Zod**
-schema — invalid or empty output becomes a `422`, provider/network failures a `500`.
-Input text is capped (~60k chars) to bound token cost. The AI provider sits behind the
-`AnalyzeFn` DI seam, so switching to Azure OpenAI is a new implementation plus one line in
-`container.ts`.
+A **single** Chat Completions call uses OpenAI **Structured Outputs** (`zodResponseFormat`),
+so the model is constrained to our schema server-side; the reply is then validated again
+with the same **Zod** schema (invalid/empty → `422`, provider/network failure → `500`,
+refusals handled). `temperature` defaults to `0` and input is capped (~60k chars) — both
+configurable. The default system prompt lives in `services/prompts.ts` (committed and
+reviewable; overridable via `AI_SYSTEM_PROMPT`). The provider sits behind a
+`StructuredCompleter` seam, so switching to Azure OpenAI is a new completer plus one line
+in `container.ts`.
 
 ---
 
@@ -230,7 +244,7 @@ Frontend (`frontend/.env`, template at `frontend/.env.example`):
   for a whole firm behind one office NAT. (`trust proxy` is set so the limiter keys on the
   real client IP behind the nginx container.)
 - Production API base assumes same origin (configurable via `VITE_API_BASE_URL`).
-- No frontend component tests (the spec requires service-layer tests only).
-- Natural extensions: clause-level risk highlighting, SSE streaming of the analysis,
-  Dockerfile + Azure deployment notes.
+- Frontend tests cover the pure logic (parsers); no full component/DOM tests.
+- Natural extensions: PDF export of the report, a shared types package to remove the
+  small front/back type duplication, and dark mode.
 ```
