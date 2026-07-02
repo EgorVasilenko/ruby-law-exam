@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { v4 as uuidv4 } from 'uuid';
 import type { ContractStore } from './contractStore';
-import type { ContractAIResult, ContractAnalysis } from '../types';
+import type { ContractAIResult, ContractAnalysis, ProgressListener } from '../types';
 
 export type AnalyzeFn = (text: string) => Promise<ContractAIResult>;
 export type ExtractFn = (buffer: Buffer, mimetype: string) => Promise<string>;
@@ -24,10 +24,16 @@ export class ContractService {
     private readonly extract: ExtractFn,
   ) {}
 
+  /**
+   * `onProgress` is an optional observer for lifecycle stages — used by the
+   * streaming endpoint. The sync path omits it and the return contract is
+   * unchanged, so the service core stays simple.
+   */
   async analyseContract(
     buffer: Buffer,
     mimetype: string,
     filename: string,
+    onProgress?: ProgressListener,
   ): Promise<AnalyseResult> {
     const hash = createHash('sha256').update(buffer).digest('hex');
 
@@ -36,7 +42,9 @@ export class ContractService {
       return { record: existing, cached: true };
     }
 
+    onProgress?.('extracting');
     const text = await this.extract(buffer, mimetype);
+    onProgress?.('analyzing');
     const analysis = await this.analyze(text);
 
     const record: ContractAnalysis = {

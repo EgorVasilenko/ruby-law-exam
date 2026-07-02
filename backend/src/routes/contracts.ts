@@ -56,6 +56,7 @@ export function createContractRoutes(
 
   const router = Router();
   router.post('/upload', uploadLimiter, uploadFile, asyncHandler(controller.upload));
+  router.post('/upload/stream', uploadLimiter, uploadFile, asyncHandler(controller.uploadStream));
   router.get('/:id', asyncHandler(controller.getById));
   return router;
 }

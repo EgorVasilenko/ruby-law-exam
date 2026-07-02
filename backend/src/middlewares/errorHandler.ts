@@ -27,12 +27,17 @@ const REGISTRY: ReadonlyArray<[DomainErrorClass, { status: number; code: string 
   [AIUnavailableError, { status: 500, code: 'AI_UNAVAILABLE' }],
 ];
 
-export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+/** Resolve any error to its HTTP status + response body. Reused by the SSE
+ *  stream (which sends {code, message} as an event, ignoring status). */
+export function describeError(err: unknown): { status: number; code: string; message: string } {
   const match = REGISTRY.find(([ErrorClass]) => err instanceof ErrorClass);
   if (match && err instanceof Error) {
-    const [, { status, code }] = match;
-    res.status(status).json({ error: { code, message: err.message } });
-    return;
+    return { status: match[1].status, code: match[1].code, message: err.message };
   }
-  res.status(500).json({ error: { code: 'INTERNAL', message: 'Unexpected error' } });
+  return { status: 500, code: 'INTERNAL', message: 'Unexpected error' };
+}
+
+export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+  const { status, code, message } = describeError(err);
+  res.status(status).json({ error: { code, message } });
 };

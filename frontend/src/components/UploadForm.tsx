@@ -7,6 +7,8 @@ import {
   type ReactElement,
 } from 'react';
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from '../config';
+import type { UploadStage } from '../types';
+import { ArrowUpIcon, CheckIcon, SpinnerIcon } from './icons';
 import styles from './UploadForm.module.scss';
 
 const ACCEPTED_EXTENSIONS = ['.pdf', '.docx'];
@@ -15,9 +17,31 @@ const ACCEPTED_MIME = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ];
 
+const STAGE_LABEL: Record<UploadStage, string> = {
+  uploading: 'Uploading…',
+  extracting: 'Extracting text…',
+  analyzing: 'Analyzing…',
+  done: 'Done',
+};
+
+function stageIcon(stage: UploadStage | null, spinClass: string): ReactElement {
+  if (stage === 'extracting' || stage === 'analyzing') return <SpinnerIcon className={spinClass} />;
+  if (stage === 'done') return <CheckIcon />;
+  return <ArrowUpIcon />; // idle + uploading
+}
+
+const STAGE_FRACTION: Record<UploadStage, number> = {
+  uploading: 0.3,
+  extracting: 0.6,
+  analyzing: 0.9,
+  done: 1,
+};
+
 interface UploadFormProps {
   onSubmit: (file: File) => void;
   disabled?: boolean;
+  /** When set, the button shows the stage and a thin progress bar appears. */
+  stage?: UploadStage | null;
 }
 
 function validate(file: File): string | null {
@@ -29,7 +53,11 @@ function validate(file: File): string | null {
   return null;
 }
 
-export function UploadForm({ onSubmit, disabled = false }: UploadFormProps): ReactElement {
+export function UploadForm({
+  onSubmit,
+  disabled = false,
+  stage = null,
+}: UploadFormProps): ReactElement {
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +102,8 @@ export function UploadForm({ onSubmit, disabled = false }: UploadFormProps): Rea
     }
   };
 
+  const isWorking = stage === 'uploading' || stage === 'extracting' || stage === 'analyzing';
+
   return (
     <div className={styles.form}>
       <div
@@ -107,14 +137,23 @@ export function UploadForm({ onSubmit, disabled = false }: UploadFormProps): Rea
         </p>
       )}
 
-      <button
-        type="button"
-        className={styles.submit}
-        onClick={() => file && onSubmit(file)}
-        disabled={!file || disabled}
-      >
-        Analyze contract <span className={styles.arrow}>→</span>
-      </button>
+      <div className={styles.actions}>
+        <button
+          type="button"
+          className={`${styles.submit} ${stage ? styles.active : ''} ${isWorking ? styles.blink : ''}`}
+          onClick={() => file && onSubmit(file)}
+          disabled={!file || disabled || stage !== null}
+        >
+          <span>{stage ? STAGE_LABEL[stage] : 'Analyze contract'}</span>
+          <span className={styles.icon}>{stageIcon(stage, styles.spin)}</span>
+        </button>
+
+        {stage && (
+          <div className={styles.progress} role="status" aria-live="polite" aria-label={STAGE_LABEL[stage]}>
+            <i style={{ width: `${STAGE_FRACTION[stage] * 100}%` }} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

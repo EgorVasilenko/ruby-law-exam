@@ -1,7 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import type { ReactElement } from 'react';
 import { UploadPage } from './pages/UploadPage';
 import { ResultPage } from './pages/ResultPage';
+import { NotFoundPage } from './pages/NotFoundPage';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import styles from './App.module.scss';
 
 export default function App(): ReactElement {
@@ -17,11 +19,13 @@ export default function App(): ReactElement {
           </div>
         </header>
         <main className={styles.main}>
-          <Routes>
-            <Route path="/" element={<UploadPage />} />
-            <Route path="/contracts/:id" element={<ResultPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<UploadPage />} />
+              <Route path="/contracts/:id" element={<ResultPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </ErrorBoundary>
         </main>
       </div>
     </BrowserRouter>

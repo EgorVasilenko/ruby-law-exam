@@ -1,0 +1,58 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 32px 0;
+}
+
+.code {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(5rem, 20vw, 12rem);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 0;
+}
+
+.title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin: 6px 0 0;
+}
+
+.message {
+  color: var(--muted);
+  margin: 8px 0 20px;
+  max-width: 46ch;
+}
+
+.action a {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--muted);
+  }
+}
+
+.action button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  padding: 11px 18px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.88;
+  }
+}

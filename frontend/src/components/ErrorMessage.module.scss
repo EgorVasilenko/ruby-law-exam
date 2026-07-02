@@ -1,31 +1,48 @@
-.error {
+.toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 50;
+  max-width: min(360px, calc(100vw - 40px));
   display: flex;
-  flex-direction: column;
   align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
-  background: var(--tint-high);
-  border: 1px solid #ecc7c3;
-  border-radius: 10px;
-  color: var(--risk-high);
-  margin-top: 20px;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--error);
+  box-shadow: 0 8px 20px rgba(20, 20, 20, 0.12);
+  animation: toast-in 0.25s ease both;
+  user-select: none;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .text {
+  flex: 1;
   margin: 0;
+  color: var(--ink);
+  font-size: 0.9rem;
 }
 
-.retry {
-  padding: 0.4rem 0.9rem;
-  background: var(--risk-high);
-  color: #fff;
+.close {
+  flex: none;
+  background: none;
   border: none;
-  border-radius: 6px;
-  font-size: 0.88rem;
-  font-family: inherit;
+  color: var(--muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0 2px;
   cursor: pointer;
 
   &:hover {
-    opacity: 0.9;
+    color: var(--ink);
   }
 }

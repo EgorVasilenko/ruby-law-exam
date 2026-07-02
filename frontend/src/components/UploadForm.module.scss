@@ -48,8 +48,29 @@
   font-size: 0.88rem;
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap; /* bar sits right of the button on desktop, wraps below on mobile */
+}
+
+/* thin 2px progress line */
+.progress {
+  flex: 1 1 180px;
+  height: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.progress i {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+  transition: width 0.4s ease;
+}
+
 .submit {
-  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -62,7 +83,7 @@
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.3s ease;
 
   &:disabled {
     opacity: 0.4;
@@ -74,13 +95,42 @@
   }
 }
 
-.arrow {
+/* while streaming a stage the button isn't "greyed out" — it's active + blinking */
+.submit.active {
+  opacity: 1;
+  cursor: default;
+}
+
+.blink {
+  animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.icon {
   display: inline-grid;
   place-items: center;
-  width: 19px;
-  height: 19px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
   background: #fff;
   color: var(--ink);
-  font-size: 0.72rem;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

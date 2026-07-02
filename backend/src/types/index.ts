@@ -22,3 +22,15 @@ export interface ContractAnalysis extends ContractAIResult {
   fullText: string;
   createdAt: string;
 }
+
+/** Server-side analysis stages the service reports (client adds its own 'uploading'). */
+export type AnalysisStage = 'extracting' | 'analyzing';
+
+export type ProgressListener = (stage: AnalysisStage) => void;
+
+/** Events streamed to the client over SSE. */
+export type ProgressEvent =
+  | { stage: 'extracting' }
+  | { stage: 'analyzing' }
+  | { stage: 'done'; contract: ContractAnalysis; cached: boolean }
+  | { stage: 'error'; code: string; message: string };

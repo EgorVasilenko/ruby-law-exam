@@ -75,6 +75,21 @@ describe('HTTP API (integration)', () => {
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });
 
+  it('streams analysis stages then a final result (SSE)', async () => {
+    const res = await request(app)
+      .post('/api/contracts/upload/stream')
+      .attach('file', Buffer.from('%PDF-fake'), {
+        filename: 'contract.pdf',
+        contentType: 'application/pdf',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('text/event-stream');
+    expect(res.text).toContain('"stage":"extracting"');
+    expect(res.text).toContain('"stage":"analyzing"');
+    expect(res.text).toContain('"stage":"done"');
+  });
+
   it('serves a stored analysis by id, and 404s for unknown ids', async () => {
     const upload = await request(app)
       .post('/api/contracts/upload')
