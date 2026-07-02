@@ -1,56 +1,38 @@
 import type { ErrorRequestHandler } from 'express';
-import { MulterError } from 'multer';
 import {
   AIUnavailableError,
   ContractNotFoundError,
   DocumentUnreadableError,
+  DomainError,
   InvalidAIResponseError,
+  PayloadTooLargeError,
   ValidationError,
 } from '../errors';
-import type { Config } from '../config';
 
-interface MappedError {
-  status: number;
-  code: string;
-  message: string;
-}
+type DomainErrorClass = new (...args: never[]) => DomainError;
 
 /**
- * The single place that knows how domain/upload errors map to HTTP.
- * Everything below the transport layer throws HTTP-agnostic domain errors.
+ * Declarative map of domain error -> HTTP response. Adding a new error is one
+ * line here; the handler logic never changes (open/closed). Domain errors stay
+ * HTTP-agnostic — this transport layer is the only place that knows status codes.
+ * Multer errors are normalised to domain errors in the routes, so they never
+ * reach this map directly.
  */
-function mapError(err: unknown, maxUploadMb: number): MappedError {
-  if (err instanceof MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return {
-        status: 413,
-        code: 'FILE_TOO_LARGE',
-        message: `File exceeds the ${maxUploadMb} MB limit`,
-      };
-    }
-    return { status: 400, code: 'UPLOAD_ERROR', message: err.message };
-  }
-  if (err instanceof ValidationError) {
-    return { status: 400, code: 'VALIDATION_ERROR', message: err.message };
-  }
-  if (err instanceof ContractNotFoundError) {
-    return { status: 404, code: 'NOT_FOUND', message: err.message };
-  }
-  if (err instanceof DocumentUnreadableError) {
-    return { status: 422, code: 'DOCUMENT_UNREADABLE', message: err.message };
-  }
-  if (err instanceof InvalidAIResponseError) {
-    return { status: 422, code: 'INVALID_AI_RESPONSE', message: err.message };
-  }
-  if (err instanceof AIUnavailableError) {
-    return { status: 500, code: 'AI_UNAVAILABLE', message: err.message };
-  }
-  return { status: 500, code: 'INTERNAL', message: 'Unexpected error' };
-}
+const REGISTRY: ReadonlyArray<[DomainErrorClass, { status: number; code: string }]> = [
+  [ValidationError, { status: 400, code: 'VALIDATION_ERROR' }],
+  [ContractNotFoundError, { status: 404, code: 'NOT_FOUND' }],
+  [PayloadTooLargeError, { status: 413, code: 'FILE_TOO_LARGE' }],
+  [DocumentUnreadableError, { status: 422, code: 'DOCUMENT_UNREADABLE' }],
+  [InvalidAIResponseError, { status: 422, code: 'INVALID_AI_RESPONSE' }],
+  [AIUnavailableError, { status: 500, code: 'AI_UNAVAILABLE' }],
+];
 
-export function createErrorHandler(uploadConfig: Config['upload']): ErrorRequestHandler {
-  return (err, _req, res, _next) => {
-    const { status, code, message } = mapError(err, uploadConfig.maxMb);
-    res.status(status).json({ error: { code, message } });
-  };
-}
+export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+  const match = REGISTRY.find(([ErrorClass]) => err instanceof ErrorClass);
+  if (match && err instanceof Error) {
+    const [, { status, code }] = match;
+    res.status(status).json({ error: { code, message: err.message } });
+    return;
+  }
+  res.status(500).json({ error: { code: 'INTERNAL', message: 'Unexpected error' } });
+};

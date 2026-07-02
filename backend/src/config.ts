@@ -14,11 +14,13 @@ const EnvSchema = z.object({
   OPENAI_TEMPERATURE: z.coerce.number().min(0).max(2).default(0),
   OPENAI_MAX_INPUT_CHARS: z.coerce.number().int().positive().default(60_000),
   AI_SYSTEM_PROMPT: z.string().default(''),
+  RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(60),
 });
 
 export interface Config {
   server: { port: number; frontendUrl: string };
   upload: { maxMb: number; maxBytes: number };
+  rateLimit: { max: number; windowMs: number };
   ai: {
     apiKey: string;
     model: string;
@@ -46,6 +48,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   return {
     server: { port: parsed.PORT, frontendUrl: parsed.FRONTEND_URL },
     upload: { maxMb: parsed.MAX_UPLOAD_MB, maxBytes: parsed.MAX_UPLOAD_MB * 1024 * 1024 },
+    rateLimit: { max: parsed.RATE_LIMIT_PER_MINUTE, windowMs: 60_000 },
     ai: {
       apiKey: parsed.OPENAI_API_KEY,
       model: parsed.OPENAI_MODEL,

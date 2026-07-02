@@ -139,7 +139,7 @@ Base path: `/api/contracts`
 
 | Method & path        | Body            | Success | Errors |
 |----------------------|-----------------|---------|--------|
-| `POST /upload`       | multipart `file`| `201` new · `200` from cache | `400` bad/no file · `413` too large · `422` unreadable / invalid AI output · `500` |
+| `POST /upload`       | multipart `file`| `201` new · `200` from cache | `400` bad/no file · `413` too large · `422` unreadable / invalid AI output · `429` too many uploads · `500` |
 | `GET /:id`           | —               | `200`   | `404` not found |
 
 Response envelope:
@@ -208,6 +208,7 @@ Backend (`backend/.env`, template at repo-root `.env.example`):
 | `PORT` | `3001` | backend port |
 | `FRONTEND_URL` | `http://localhost:5173` | CORS origin |
 | `MAX_UPLOAD_MB` | `10` | max upload size |
+| `RATE_LIMIT_PER_MINUTE` | `60` | per-IP upload limit (requests/min) |
 
 Frontend (`frontend/.env`, template at `frontend/.env.example`):
 
@@ -223,9 +224,11 @@ Frontend (`frontend/.env`, template at `frontend/.env.example`):
 - **In-memory** store and cache reset on restart (no database — per the spec).
 - **Cost tracking is an estimate** from reported token usage × a static price table, not
   OpenAI's authoritative billing.
-- **No auth.** Rate limiting is intentionally omitted: a correct quota belongs at the
-  authenticated-account level, and a naive IP limit would false-positive for a whole law
-  firm behind one office NAT.
+- **No auth.** A generous per-IP rate limit (60/min, configurable) guards the paid upload
+  endpoint against runaway abuse. It's a coarse anti-DoS backstop, not a fair-use quota —
+  that belongs at the authenticated-account level, since an IP limit can false-positive
+  for a whole firm behind one office NAT. (`trust proxy` is set so the limiter keys on the
+  real client IP behind the nginx container.)
 - Production API base assumes same origin (configurable via `VITE_API_BASE_URL`).
 - No frontend component tests (the spec requires service-layer tests only).
 - Natural extensions: clause-level risk highlighting, SSE streaming of the analysis,

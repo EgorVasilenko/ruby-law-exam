@@ -24,3 +24,6 @@ export class AIUnavailableError extends DomainError {}
 
 /** No contract exists for the requested id. */
 export class ContractNotFoundError extends DomainError {}
+
+/** The uploaded file is larger than the allowed limit. */
+export class PayloadTooLargeError extends DomainError {}
